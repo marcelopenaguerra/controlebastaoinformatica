@@ -1284,7 +1284,7 @@ with col_principal:
                 if st.button("Confirmar Atividade", type="primary", use_container_width=True):
                     if atividade_desc:
                         status_final = f"Atividade: {atividade_desc}"
-                        update_status(status_final, force_exit_queue=False)
+                        update_status(status_final, force_exit_queue=True)  # SAIR DA FILA
                         st.session_state.active_view = None
                         st.rerun()
                     else:
