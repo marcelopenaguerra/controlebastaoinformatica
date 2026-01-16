@@ -1269,7 +1269,8 @@ with col_principal:
     st.markdown("")
     
     # Atualizar
-    st.button('🔄 Atualizar', on_click=manual_rerun, use_container_width=True)
+    if st.button('🔄 Atualizar', use_container_width=True):
+        st.rerun()
     
     # Menu de Atividades
     if st.session_state.active_view == 'menu_atividades':
