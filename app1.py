@@ -470,6 +470,7 @@ def toggle_queue(colaborador):
             st.session_state.status_texto[colaborador] = ''
 
     check_and_assume_baton()
+    save_state()  # SALVAR ESTADO APÓS MUDANÇA
 
 def rotate_bastao():
     """Passa o bastão para o próximo colaborador"""
@@ -564,6 +565,8 @@ def update_status(new_status_part, force_exit_queue=False):
     
     if was_holder and should_exit_queue:
         check_and_assume_baton()
+    
+    save_state()  # SALVAR ESTADO APÓS MUDANÇA
 
 def leave_specific_status(colaborador, status_type_to_remove):
     old_status = st.session_state.status_texto.get(colaborador, '')
@@ -574,6 +577,7 @@ def leave_specific_status(colaborador, status_type_to_remove):
         new_status = 'Indisponível'
     st.session_state.status_texto[colaborador] = new_status
     check_and_assume_baton()
+    save_state()  # SALVAR ESTADO
 
 def enter_from_indisponivel(colaborador):
     if colaborador not in st.session_state.bastao_queue:
@@ -581,6 +585,7 @@ def enter_from_indisponivel(colaborador):
     st.session_state[f'check_{colaborador}'] = True
     st.session_state.status_texto[colaborador] = ''
     check_and_assume_baton()
+    save_state()  # SALVAR ESTADO
 
 
 def gerar_html_relatorio(logs_filtrados):
@@ -1545,7 +1550,8 @@ with col_disponibilidade:
         for nome in render_order:
             col_nome, col_check = st.columns([0.85, 0.15], vertical_alignment="center")
             key = f'chk_fila_{nome}'
-            is_checked = True
+            # Usar estado persistido do checkbox
+            is_checked = st.session_state.get(f'check_{nome}', True)
             col_check.checkbox(' ', key=key, value=is_checked, on_change=toggle_queue, args=(nome,), label_visibility='collapsed')
             
             status_atual = st.session_state.status_texto.get(nome, '')
