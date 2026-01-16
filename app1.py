@@ -11,6 +11,7 @@ from streamlit_autorefresh import st_autorefresh
 import random
 import base64
 import os
+
 import json
 from pathlib import Path
 
@@ -61,7 +62,7 @@ COLABORADORES = sorted([
     "Warley Roberto de Oliveira Cruz",
     "Marcio Rodrigues Alves",
     "Igor Eduardo Martins",
-    "Leonardo Gonçalves Fleury",
+    "Leonardo goncalves fleury",
     "Marcelo dos Santos Dutra",
     "Daniely Cristina Cunha Mesquita",
     "Celso Daniel Vilano Cardoso",
@@ -1253,6 +1254,11 @@ with col_principal:
     
     st.markdown("")
     
+    # Botão Atividades
+    st.button('📋 Atividades', on_click=toggle_view, args=('menu_atividades',), use_container_width=True, help='Marcar como Em Demanda')
+    
+    st.markdown("")
+    
     # Status: Almoço, Saída, Ausente
     row1_c1, row1_c2, row1_c3 = st.columns(3)
     
@@ -1263,8 +1269,29 @@ with col_principal:
     st.markdown("")
     
     # Atualizar
-    if st.button('🔄 Atualizar', use_container_width=True):
-        pass  # O Streamlit já atualiza automaticamente ao clicar
+    st.button('🔄 Atualizar', on_click=manual_rerun, use_container_width=True)
+    
+    # Menu de Atividades
+    if st.session_state.active_view == 'menu_atividades':
+        with st.container(border=True):
+            st.markdown("### 📋 Atividade / Em Demanda")
+            
+            atividade_desc = st.text_input("Descrição da atividade:", placeholder="Ex: Suporte técnico, Desenvolvimento...")
+            
+            col_a1, col_a2 = st.columns(2)
+            with col_a1:
+                if st.button("Confirmar Atividade", type="primary", use_container_width=True):
+                    if atividade_desc:
+                        status_final = f"Atividade: {atividade_desc}"
+                        update_status(status_final, force_exit_queue=False)
+                        st.session_state.active_view = None
+                        st.rerun()
+                    else:
+                        st.warning("Digite a descrição da atividade.")
+            with col_a2:
+                if st.button("Cancelar", use_container_width=True, key='cancel_atividade'):
+                    st.session_state.active_view = None
+                    st.rerun()
     
     st.markdown("---")
     
