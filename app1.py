@@ -3,7 +3,6 @@
 # Versão: Completa com Login e Banco de Dados
 # ============================================
 import streamlit as st
-from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import time
 import re  # Regex para limpeza de texto
@@ -42,11 +41,8 @@ st.set_page_config(
         'Get Help': None,
         'Report a bug': None,
         'About': "Sistema de Controle de Bastão - Informática TJMG"
-    } # Fecha o dicionário aqui
-) # Fecha o set_page_config aqui
-
-# ================ AUTO-REFRESH (SINCRONIZAÇÃO) ================
-st_autorefresh(interval=3000, key="sync")
+    }
+)
 
 # Forçar tema claro via CSS
 st.markdown("""
@@ -787,6 +783,7 @@ def rotate_bastao():
 def force_rotate_bastao(from_colaborador):
     """
     FORÇA passar o bastão sem validação (usado quando admin tira alguém da fila)
+    CRÍTICO: NÃO chama check_and_assume_baton para evitar mexer na fila
     """
     queue = st.session_state.bastao_queue
     
@@ -812,14 +809,11 @@ def force_rotate_bastao(from_colaborador):
             st.session_state.bastao_counts[from_colaborador] = st.session_state.bastao_counts.get(from_colaborador, 0) + 1
             save_state()
         else:
-            # Ninguém marcado, chamar check_and_assume_baton
-            check_and_assume_baton()
+            # Ninguém marcado na fila - apenas salvar
+            save_state()
     else:
-        # Fila vazia
+        # Fila vazia - apenas salvar
         save_state()
-
-        st.warning('⚠️ Não há próximo(a) colaborador(a) elegível na fila.')
-        check_and_assume_baton()
 
 def update_status(new_status_part, force_exit_queue=False):
     selected = st.session_state.usuario_logado
@@ -1383,15 +1377,14 @@ init_session_state()
 apply_modern_styles()
 
 # ==================== AUTO-REFRESH ====================
-# Atualiza automaticamente a cada 3 segundos para sincronizar estado
-if 'last_update' not in st.session_state:
-    st.session_state.last_update = time.time()
-
-# Se passou 3 segundos, recarregar
-current_time = time.time()
-if current_time - st.session_state.last_update > 3:
-    st.session_state.last_update = current_time
-    st.rerun()  # Rerun forçado - sincronização acontece na linha 1399
+# DESATIVADO - Causava loop infinito e bugs na fila
+# Para reativar, descomentar as linhas abaixo
+# if 'last_update' not in st.session_state:
+#     st.session_state.last_update = time.time()
+# current_time = time.time()
+# if current_time - st.session_state.last_update > 3:
+#     st.session_state.last_update = current_time
+#     st.rerun()
 
 # ==================== VERIFICAÇÃO DE LOGIN ====================
 verificar_autenticacao()  # Se não logado, mostra tela de login e para
@@ -1877,7 +1870,7 @@ with col_principal:
                     if atividade_desc:
                         colaborador = st.session_state.usuario_logado
                         
-                        # Verificar se tem o bastão
+                        # Verificar se tem o bastão ANTES de mudar status
                         tem_bastao = 'Bastão' in st.session_state.status_texto.get(colaborador, '')
                         
                         # Registrar início da demanda
@@ -1885,20 +1878,24 @@ with col_principal:
                         
                         # Atualizar status (remove da fila)
                         status_final = f"Atividade: {atividade_desc}"
-                        update_status(status_final, force_exit_queue=True)
                         
-                        # Se tinha bastão, passa automaticamente
+                        # Remover da fila ANTES
+                        if colaborador in st.session_state.bastao_queue:
+                            st.session_state.bastao_queue.remove(colaborador)
+                        st.session_state[f'check_{colaborador}'] = False
+                        
+                        # Atualizar status SEM bastão
+                        st.session_state.status_texto[colaborador] = status_final
+                        
+                        # Se tinha bastão, passar usando force_rotate (não mexe na fila)
                         if tem_bastao:
-                            # Limpar bastão do status
-                            st.session_state.status_texto[colaborador] = status_final
-                            # Passar para próximo
-                            check_and_assume_baton()
-                            st.success(f"✅ {colaborador} entrou em atividade e o bastão foi passado automaticamente!")
+                            force_rotate_bastao(colaborador)
+                            st.success(f"✅ {colaborador} entrou em atividade e o bastão foi passado!")
                         else:
+                            save_state()
                             st.success(f"✅ {colaborador} entrou em atividade!")
                         
                         st.session_state.active_view = None
-                        save_state()
                         time.sleep(1)
                         st.rerun()
                     else:
@@ -2024,6 +2021,8 @@ with col_principal:
                         
                         st.success(f"✅ Demanda direcionada para {colaborador_direcionado}!")
                     else:
+                        # Demanda pública (não direcionada)
+                        save_state()
                         st.success("✅ Demanda publicada!")
                     
                     time.sleep(1)
@@ -2343,6 +2342,8 @@ with col_principal:
                                 
                                 st.success(f"✅ Demanda direcionada para {colaborador_direcionado}!")
                             else:
+                                # Demanda pública (não direcionada)
+                                save_state()
                                 st.success("✅ Demanda publicada!")
                             
                             time.sleep(1)
