@@ -2566,4 +2566,4 @@ with col_disponibilidade:
 
 # Footer
 st.markdown("---")
-st.caption("Sistema de Controle de Bastão - Informática 2026 - Versão Local (Sem Integrações Externas)")
+st.caption("Sistema de Controle de Bastão - Informática 2026 - Versão Local (Sem Integrações Externas"))
