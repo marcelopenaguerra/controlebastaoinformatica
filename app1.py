@@ -9,6 +9,7 @@ import re  # Regex para limpeza de texto
 from datetime import datetime, timedelta, date, time as dt_time
 import pytz  # Timezone de Brasília
 from operator import itemgetter
+from streamlit_autorefresh import st_autorefresh
 import random
 import base64
 import os
@@ -1377,9 +1378,9 @@ init_session_state()
 apply_modern_styles()
 
 # ==================== AUTO-REFRESH ====================
-# ==================== AUTO-REFRESH INTELIGENTE ====================
-# Sincroniza estado do disco a cada renderização (sem loop infinito)
-# O Streamlit já recarrega quando usuário interage, então não precisa de timer forçado
+# ==================== AUTO-REFRESH ====================
+# CRÍTICO: Auto-refresh ANTES de tudo para forçar sincronização
+st_autorefresh(interval=3000, key='auto_rerun_key')
 
 # ==================== VERIFICAÇÃO DE LOGIN ====================
 verificar_autenticacao()  # Se não logado, mostra tela de login e para
@@ -2628,14 +2629,3 @@ with col_disponibilidade:
 # Footer
 st.markdown("---")
 st.caption("Sistema de Controle de Bastão - Informática 2026 - Versão Local (Sem Integrações Externas)")
-
-# ==================== AUTO-REFRESH JAVASCRIPT ====================
-# Recarrega página a cada 3 segundos de forma silenciosa
-st.components.v1.html("""
-<script>
-    // Auto-refresh a cada 3 segundos
-    setTimeout(function() {
-        window.parent.location.reload();
-    }, 3000);
-</script>
-""", height=0)
