@@ -42,7 +42,6 @@ st.set_page_config(
         'Get Help': None,
         'Report a bug': None,
         'About': "Sistema de Controle de Bastão - Informática TJMG"
-        }
         # ==================== AUTO-REFRESH (SINCRONIZAÇÃO) ====================
 st_autorefresh(interval=3000, key="sync")
     }
