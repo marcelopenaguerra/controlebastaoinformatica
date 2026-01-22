@@ -1,14 +1,15 @@
+# ============================================
 # CONTROLE DE BASTÃO Informática 2026
 # Versão: Completa com Login e Banco de Dados
 # ============================================
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import time
 import re  # Regex para limpeza de texto
 from datetime import datetime, timedelta, date, time as dt_time
 import pytz  # Timezone de Brasília
 from operator import itemgetter
-from streamlit_autorefresh import st_autorefresh
 import random
 import base64
 import os
@@ -19,7 +20,7 @@ from pathlib import Path
 # Sistema de autenticação
 from auth_system import init_database, verificar_login, listar_usuarios_ativos, adicionar_usuario, is_usuario_admin
 from login_screen import verificar_autenticacao, mostrar_tela_login, fazer_logout
-from admin_bd_panel import mostrar_painel_admin_bd, adicionar_menu_bd_sidebar
+from admin_bd_panel import mostrar_painel_admin_bd
 
 # Sistema de Estado Compartilhado
 from shared_state import SharedState
@@ -41,6 +42,8 @@ st.set_page_config(
         'Get Help': None,
         'Report a bug': None,
         'About': "Sistema de Controle de Bastão - Informática TJMG"
+        # ==================== AUTO-REFRESH (SINCRONIZAÇÃO) ====================
+st_autorefresh(interval=3000, key="sync")
     }
 )
 
@@ -168,7 +171,390 @@ def apply_modern_styles():
     /* Importar fonte moderna */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-   
+    /* ==================== FORÇAR LIGHT MODE ==================== */
+    /* FORÇA cores em TODOS os elementos */
+    
+    html, body, [data-testid="stAppViewContainer"], 
+    .main, .block-container, [class*="st-"] {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+    }
+    
+    /* FORÇAR textos pretos em TUDO */
+    p, span, div, label, h1, h2, h3, h4, h5, h6, 
+    .stMarkdown, .stText, .stCaption {
+        color: #0f172a !important;
+    }
+    
+    /* Labels específicos */
+    label {
+        color: #1e293b !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Reset e Base */
+    * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+    
+    /* Container principal */
+    .main {
+        background: #f1f5f9 !important;
+        padding: 1.5rem !important;
+    }
+    
+    .block-container {
+        max-width: 1400px !important;
+        padding: 1rem !important;
+        background: #f1f5f9 !important;
+    }
+    
+    /* Remover header padrão Streamlit */
+    header {
+        background: transparent !important;
+    }
+    
+    /* Botões modernos */
+    .stButton > button {
+        background: white !important;
+        color: #0f172a !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        padding: 0.6rem 1.2rem !important;
+        font-weight: 500 !important;
+        font-size: 0.875rem !important;
+        transition: all 0.15s ease !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+    }
+    
+    .stButton > button:hover {
+        background: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    .stButton > button[kind="primary"] {
+        background: #2563eb !important;
+        color: white !important;
+        border-color: #2563eb !important;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        background: #1d4ed8 !important;
+        border-color: #1d4ed8 !important;
+    }
+    
+    /* Inputs - FORÇAR PRETO */
+    .stSelectbox > div > div,
+    .stTextInput > div > div,
+    .stTextArea > div > div,
+    input, select, textarea {
+        border-radius: 10px !important;
+        border: 1px solid #e2e8f0 !important;
+        background: white !important;
+        color: #0f172a !important;
+        font-size: 0.875rem !important;
+    }
+    
+    /* Placeholder visível */
+    input::placeholder, 
+    textarea::placeholder {
+        color: #94a3b8 !important;
+        opacity: 1 !important;
+    }
+    
+    .stSelectbox > div > div:hover {
+        border-color: #cbd5e1 !important;
+    }
+    
+    .stSelectbox > div > div:focus-within {
+        border-color: #2563eb !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+    }
+    
+    /* Headers - PRETO FORTE */
+    h1, h2, h3, h4, h5, h6 {
+        color: #0f172a !important;
+        font-weight: 600 !important;
+    }
+    
+    h1 {
+        font-size: 1.75rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    h2 {
+        font-size: 1.25rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+    
+    h3 {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.5rem !important;
+        color: #475569 !important;
+    }
+    
+    /* Alertas */
+    .stSuccess, .stError, .stWarning, .stInfo {
+        border-radius: 10px !important;
+        border: 1px solid !important;
+        padding: 0.875rem !important;
+        font-size: 0.875rem !important;
+    }
+    
+    .stSuccess {
+        background: #f0fdf4 !important;
+        border-color: #bbf7d0 !important;
+        color: #166534 !important;
+    }
+    
+    .stError {
+        background: #fef2f2 !important;
+        border-color: #fecaca !important;
+        color: #991b1b !important;
+    }
+    
+    .stWarning {
+        background: #fefce8 !important;
+        border-color: #fef08a !important;
+        color: #854d0e !important;
+    }
+    
+    .stInfo {
+        background: #eff6ff !important;
+        border-color: #bfdbfe !important;
+        color: #1e40af !important;
+    }
+    
+    /* Expanders */
+    .streamlit-expanderHeader {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        font-size: 0.9rem !important;
+        font-weight: 500 !important;
+        padding: 0.875rem !important;
+    }
+    
+    .streamlit-expanderHeader:hover {
+        background: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+    }
+    
+    /* Sidebar - FORÇAR LIGHT */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] * {
+        background: white !important;
+        color: #0f172a !important;
+    }
+    
+    [data-testid="stSidebar"] {
+        border-right: 1px solid #e2e8f0 !important;
+    }
+    
+    /* Sidebar headers */
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div {
+        color: #0f172a !important;
+    }
+    
+    /* Métricas - PRETO FORTE */
+    [data-testid="stMetricValue"] {
+        font-size: 1.5rem !important;
+        font-weight: 600 !important;
+        color: #0f172a !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        font-size: 0.875rem !important;
+        color: #475569 !important;
+        font-weight: 500 !important;
+    }
+    
+    /* ==================== CHECKBOX PADRÃO (igual aos da fila) ==================== */
+    /* Sem customização - usar aparência nativa */
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    /* Divisor */
+    hr {
+        border: none !important;
+        height: 1px !important;
+        background: #e2e8f0 !important;
+        margin: 1.5rem 0 !important;
+    }
+    
+    /* Tabelas */
+    .dataframe {
+        font-size: 0.875rem !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+    }
+    
+    .dataframe thead th {
+        background: #f8fafc !important;
+        color: #0f172a !important;
+        font-weight: 600 !important;
+        padding: 0.75rem !important;
+        border-bottom: 2px solid #e2e8f0 !important;
+    }
+    
+    .dataframe tbody td {
+        padding: 0.75rem !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        color: #0f172a !important;
+    }
+    
+    /* Animação de demandas piscando */
+    @keyframes pulse-demand {
+        0%, 100% { 
+            opacity: 1;
+            transform: scale(1);
+        }
+        50% { 
+            opacity: 0.7;
+            transform: scale(1.02);
+        }
+    }
+    
+    .demand-alert {
+        animation: pulse-demand 2s infinite;
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        padding: 1rem;
+        border-radius: 12px;
+        border-left: 4px solid #f59e0b;
+        margin: 1rem 0;
+        box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);
+    }
+    
+    .demand-alert strong {
+        color: #92400e !important;
+        font-size: 1rem;
+    }
+    
+    /* Checkbox - VISÍVEL NO WINDOWS com fundo */
+    .stCheckbox {
+        font-size: 0.875rem !important;
+    }
+    
+    .stCheckbox label,
+    .stCheckbox span {
+        color: #0f172a !important;
+    }
+    
+    /* CRÍTICO: Checkbox VISÍVEL no Windows */
+    input[type="checkbox"] {
+        width: 20px !important;
+        height: 20px !important;
+        cursor: pointer !important;
+        accent-color: #2563eb !important;
+        background-color: #f1f5f9 !important;
+        border: 2px solid #cbd5e1 !important;
+        border-radius: 4px !important;
+    }
+    
+    input[type="checkbox"]:checked {
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+    }
+    
+    /* CRÍTICO: Radio buttons MUITO VISÍVEIS */
+    input[type="radio"] {
+        width: 20px !important;
+        height: 20px !important;
+        cursor: pointer !important;
+        accent-color: #2563eb !important;
+        margin-right: 8px !important;
+    }
+    
+    /* Radio button labels maiores e mais visíveis */
+    .stRadio > label {
+        font-size: 0.95rem !important;
+        font-weight: 500 !important;
+        color: #0f172a !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .stRadio > div {
+        gap: 0.75rem !important;
+    }
+    
+    .stRadio label[data-baseweb="radio"] {
+        font-size: 0.9rem !important;
+        padding: 0.5rem !important;
+        border-radius: 8px !important;
+        transition: all 0.2s !important;
+        cursor: pointer !important;
+    }
+    
+    .stRadio label[data-baseweb="radio"]:hover {
+        background-color: #f1f5f9 !important;
+    }
+    
+    .stRadio input[type="radio"]:checked + div {
+        background-color: #eff6ff !important;
+        border-left: 3px solid #2563eb !important;
+        padding-left: 8px !important;
+    }
+    
+    /* Caption - FORÇAR CINZA ESCURO */
+    .stCaption,
+    [data-testid="stCaptionContainer"] {
+        color: #475569 !important;
+        font-style: normal !important;
+    }
+    
+    /* FORÇAR em elementos do Streamlit */
+    [class*="st-"] {
+        color: #0f172a !important;
+    }
+    
+    /* Texto em colunas */
+    [data-testid="column"] p,
+    [data-testid="column"] span,
+    [data-testid="column"] div {
+        color: #0f172a !important;
+    }
+    
+    /* Remover elementos desnecessários */
+    .stDeployButton {
+        display: none !important;
+    }
+    
+    button[title="View fullscreen"] {
+        display: none !important;
+    }
+    
+    /* Responsivo */
+    @media (max-width: 768px) {
+        .block-container {
+            padding: 0.5rem !important;
+        }
+    }
+    </style>""", unsafe_allow_html=True)
 
 def format_time_duration(duration):
     if not isinstance(duration, timedelta): return '--:--:--'
@@ -395,6 +781,42 @@ def rotate_bastao():
         save_state()
         st.rerun()
     else:
+        st.warning('⚠️ Não há próximo colaborador disponível.')
+
+def force_rotate_bastao(from_colaborador):
+    """
+    FORÇA passar o bastão sem validação (usado quando admin tira alguém da fila)
+    """
+    queue = st.session_state.bastao_queue
+    
+    # Remover bastão do colaborador atual
+    old_status = st.session_state.status_texto.get(from_colaborador, '')
+    new_status = old_status.replace('Bastão | ', '').replace('Bastão', '').strip()
+    st.session_state.status_texto[from_colaborador] = new_status
+    
+    # Se ainda tem gente na fila, dar bastão para o próximo
+    if queue:
+        # Pegar o primeiro da fila que está marcado
+        next_holder = None
+        for colaborador in queue:
+            if st.session_state.get(f'check_{colaborador}', False):
+                next_holder = colaborador
+                break
+        
+        if next_holder:
+            old_n_status = st.session_state.status_texto.get(next_holder, '')
+            new_n_status = f"Bastão | {old_n_status}" if old_n_status else "Bastão"
+            st.session_state.status_texto[next_holder] = new_n_status
+            st.session_state.bastao_start_time = now_brasilia()
+            st.session_state.bastao_counts[from_colaborador] = st.session_state.bastao_counts.get(from_colaborador, 0) + 1
+            save_state()
+        else:
+            # Ninguém marcado, chamar check_and_assume_baton
+            check_and_assume_baton()
+    else:
+        # Fila vazia
+        save_state()
+
         st.warning('⚠️ Não há próximo(a) colaborador(a) elegível na fila.')
         check_and_assume_baton()
 
@@ -532,7 +954,8 @@ def finalizar_demanda(colaborador):
     time.sleep(1)
     st.rerun()
 
-    def check_almoco_timeout():
+def check_almoco_timeout():
+    """Verifica se alguém está há mais de 1h no almoço e retorna automaticamente"""
     now = now_brasilia()
     almoco_times = st.session_state.get('almoco_times', {})
     
@@ -959,8 +1382,15 @@ init_session_state()
 apply_modern_styles()
 
 # ==================== AUTO-REFRESH ====================
-# CRÍTICO: Auto-refresh ANTES de tudo para forçar sincronização
-st_autorefresh(interval=3000, key='auto_rerun_key')
+# Atualiza automaticamente a cada 3 segundos para sincronizar estado
+if 'last_update' not in st.session_state:
+    st.session_state.last_update = time.time()
+
+# Se passou 3 segundos, recarregar
+current_time = time.time()
+if current_time - st.session_state.last_update > 3:
+    st.session_state.last_update = current_time
+    st.rerun()  # Rerun forçado - sincronização acontece na linha 1399
 
 # ==================== VERIFICAÇÃO DE LOGIN ====================
 verificar_autenticacao()  # Se não logado, mostra tela de login e para
@@ -1271,6 +1701,7 @@ with col_principal:
         """, unsafe_allow_html=True)
         
         # ========== DEMANDAS PÚBLICAS PISCANDO (ITEM 10) ==========
+        # TODOS (incluindo ADMINS) podem ver e assumir demandas
         # CRÍTICO: Filtrar por usuario_logado, NÃO por quem tem o bastão
         usuario_logado = st.session_state.usuario_logado
         demandas_ativas = [
@@ -1567,24 +1998,29 @@ with col_principal:
                     
                     # Se direcionada, atribuir automaticamente
                     if colaborador_direcionado:
+                        # CRÍTICO: Verificar bastão ANTES de mudar status
+                        tinha_bastao = 'Bastão' in st.session_state.status_texto.get(colaborador_direcionado, '')
+                        estava_na_fila = colaborador_direcionado in st.session_state.bastao_queue
+                        
+                        # Agora mudar o status
                         atividade_desc = f"[{setor}] {texto_limpo[:100]}"
                         st.session_state.demanda_start_times[colaborador_direcionado] = now_brasilia()
                         st.session_state.status_texto[colaborador_direcionado] = f"Atividade: {atividade_desc}"
                         
-                        # Se estava na fila, remover
-                        estava_na_fila = colaborador_direcionado in st.session_state.bastao_queue
-                        tinha_bastao = 'Bastão' in st.session_state.status_texto.get(colaborador_direcionado, '')
-                        
+                        # Remover da fila
                         if estava_na_fila:
                             st.session_state.bastao_queue.remove(colaborador_direcionado)
                         
+                        # Desmarcar checkbox
                         st.session_state[f'check_{colaborador_direcionado}'] = False
                         
-                        # CRÍTICO: Se tinha bastão, passar para próximo
+                        # Se tinha bastão, passar para próximo (SEM validação)
                         if tinha_bastao:
-                            rotate_bastao()  # Passa bastão automaticamente
+                            force_rotate_bastao(colaborador_direcionado)
+                        else:
+                            # Se não tinha bastão, só salvar
+                            save_state()
                         
-                        save_state()
                         st.success(f"✅ Demanda direcionada para {colaborador_direcionado}!")
                     else:
                         st.success("✅ Demanda publicada!")
@@ -1881,24 +2317,29 @@ with col_principal:
                             
                             # Se direcionada, atribuir automaticamente
                             if colaborador_direcionado:
+                                # CRÍTICO: Verificar bastão ANTES de mudar status
+                                tinha_bastao = 'Bastão' in st.session_state.status_texto.get(colaborador_direcionado, '')
+                                estava_na_fila = colaborador_direcionado in st.session_state.bastao_queue
+                                
+                                # Mudar status
                                 atividade_desc = f"[{setor}] {texto_limpo[:100]}"
                                 st.session_state.demanda_start_times[colaborador_direcionado] = now_brasilia()
                                 st.session_state.status_texto[colaborador_direcionado] = f"Atividade: {atividade_desc}"
                                 
-                                # Se estava na fila, remover
-                                estava_na_fila = colaborador_direcionado in st.session_state.bastao_queue
-                                tinha_bastao = 'Bastão' in st.session_state.status_texto.get(colaborador_direcionado, '')
-                                
+                                # Remover da fila
                                 if estava_na_fila:
                                     st.session_state.bastao_queue.remove(colaborador_direcionado)
                                 
+                                # Desmarcar checkbox
                                 st.session_state[f'check_{colaborador_direcionado}'] = False
                                 
-                                # CRÍTICO: Se tinha bastão, passar para próximo
+                                # Se tinha bastão, passar para próximo (SEM validação)
                                 if tinha_bastao:
-                                    rotate_bastao()  # Passa bastão automaticamente
+                                    force_rotate_bastao(colaborador_direcionado)
+                                else:
+                                    # Se não tinha bastão, só salvar
+                                    save_state()
                                 
-                                save_state()
                                 st.success(f"✅ Demanda direcionada para {colaborador_direcionado}!")
                             else:
                                 st.success("✅ Demanda publicada!")
@@ -2013,19 +2454,26 @@ with col_disponibilidade:
         'indisponivel': []
     }
     
-    # CRÍTICO: Filtrar admins de todas as listas
+    # CRÍTICO: Filtrar admins (EXCETO: Em Demanda, Almoço, Saída rápida)
     from auth_system import is_usuario_admin
     
     for nome in COLABORADORES:
-        # PULAR admins - NÃO APARECEM EM NENHUMA LISTA
-        if is_usuario_admin(nome):
-            continue  # Pula para próximo colaborador
+        eh_admin = is_usuario_admin(nome)
+        status = st.session_state.status_texto.get(nome, 'Indisponível')
         
-        # A partir daqui, só processa NÃO-ADMINS
+        # Admin SÓ aparece se estiver em: Atividade, Almoço ou Saída rápida
+        if eh_admin:
+            pode_mostrar = (
+                'Atividade:' in status or 
+                status == 'Almoço' or 
+                status == 'Saída rápida'
+            )
+            if not pode_mostrar:
+                continue  # Pula admin em outros status
+        
+        # A partir daqui: NÃO-ADMINS ou ADMINS nos status permitidos
         if nome in st.session_state.bastao_queue:
             ui_lists['fila'].append(nome)
-        
-        status = st.session_state.status_texto.get(nome, 'Indisponível')
         
         if status == '' or status is None:
             pass
