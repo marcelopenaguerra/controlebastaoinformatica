@@ -41,11 +41,12 @@ st.set_page_config(
     menu_items={
         'Get Help': None,
         'Report a bug': None,
-        'About':"Sistema de Controle de Bastão - Informática TJMG"
-        # ==================== AUTO-REFRESH (SINCRONIZAÇÃO) ====================
+        'About': "Sistema de Controle de Bastão - Informática TJMG"
+    } # Fecha o dicionário aqui
+) # Fecha o set_page_config aqui
+
+# ================ AUTO-REFRESH (SINCRONIZAÇÃO) ================
 st_autorefresh(interval=3000, key="sync")
-    }
-)
 
 # Forçar tema claro via CSS
 st.markdown("""
