@@ -1377,14 +1377,9 @@ init_session_state()
 apply_modern_styles()
 
 # ==================== AUTO-REFRESH ====================
-# DESATIVADO - Causava loop infinito e bugs na fila
-# Para reativar, descomentar as linhas abaixo
-# if 'last_update' not in st.session_state:
-#     st.session_state.last_update = time.time()
-# current_time = time.time()
-# if current_time - st.session_state.last_update > 3:
-#     st.session_state.last_update = current_time
-#     st.rerun()
+# ==================== AUTO-REFRESH INTELIGENTE ====================
+# Sincroniza estado do disco a cada renderização (sem loop infinito)
+# O Streamlit já recarrega quando usuário interage, então não precisa de timer forçado
 
 # ==================== VERIFICAÇÃO DE LOGIN ====================
 verificar_autenticacao()  # Se não logado, mostra tela de login e para
@@ -2633,3 +2628,14 @@ with col_disponibilidade:
 # Footer
 st.markdown("---")
 st.caption("Sistema de Controle de Bastão - Informática 2026 - Versão Local (Sem Integrações Externas)")
+
+# ==================== AUTO-REFRESH JAVASCRIPT ====================
+# Recarrega página a cada 3 segundos de forma silenciosa
+st.components.v1.html("""
+<script>
+    // Auto-refresh a cada 3 segundos
+    setTimeout(function() {
+        window.parent.location.reload();
+    }, 3000);
+</script>
+""", height=0)
