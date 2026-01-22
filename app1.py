@@ -778,6 +778,42 @@ def rotate_bastao():
         save_state()
         st.rerun()
     else:
+        st.warning('⚠️ Não há próximo colaborador disponível.')
+
+def force_rotate_bastao(from_colaborador):
+    """
+    FORÇA passar o bastão sem validação (usado quando admin tira alguém da fila)
+    """
+    queue = st.session_state.bastao_queue
+    
+    # Remover bastão do colaborador atual
+    old_status = st.session_state.status_texto.get(from_colaborador, '')
+    new_status = old_status.replace('Bastão | ', '').replace('Bastão', '').strip()
+    st.session_state.status_texto[from_colaborador] = new_status
+    
+    # Se ainda tem gente na fila, dar bastão para o próximo
+    if queue:
+        # Pegar o primeiro da fila que está marcado
+        next_holder = None
+        for colaborador in queue:
+            if st.session_state.get(f'check_{colaborador}', False):
+                next_holder = colaborador
+                break
+        
+        if next_holder:
+            old_n_status = st.session_state.status_texto.get(next_holder, '')
+            new_n_status = f"Bastão | {old_n_status}" if old_n_status else "Bastão"
+            st.session_state.status_texto[next_holder] = new_n_status
+            st.session_state.bastao_start_time = now_brasilia()
+            st.session_state.bastao_counts[from_colaborador] = st.session_state.bastao_counts.get(from_colaborador, 0) + 1
+            save_state()
+        else:
+            # Ninguém marcado, chamar check_and_assume_baton
+            check_and_assume_baton()
+    else:
+        # Fila vazia
+        save_state()
+
         st.warning('⚠️ Não há próximo(a) colaborador(a) elegível na fila.')
         check_and_assume_baton()
 
@@ -1343,8 +1379,7 @@ init_session_state()
 apply_modern_styles()
 
 # ==================== AUTO-REFRESH ====================
-# Usa rerun automático do Streamlit (nativo, sem dependências extras)
-# Atualiza a cada 3 segundos automaticamente
+# Atualiza automaticamente a cada 3 segundos para sincronizar estado
 if 'last_update' not in st.session_state:
     st.session_state.last_update = time.time()
 
@@ -1352,8 +1387,7 @@ if 'last_update' not in st.session_state:
 current_time = time.time()
 if current_time - st.session_state.last_update > 3:
     st.session_state.last_update = current_time
-    # Forçar atualização silenciosa (comentar esta linha se quiser desabilitar auto-refresh)
-    # st.rerun()
+    st.rerun()  # Rerun forçado - sincronização acontece na linha 1399
 
 # ==================== VERIFICAÇÃO DE LOGIN ====================
 verificar_autenticacao()  # Se não logado, mostra tela de login e para
@@ -1977,11 +2011,13 @@ with col_principal:
                         # Desmarcar checkbox
                         st.session_state[f'check_{colaborador_direcionado}'] = False
                         
-                        # Se tinha bastão, passar para próximo
+                        # Se tinha bastão, passar para próximo (SEM validação)
                         if tinha_bastao:
-                            rotate_bastao()
+                            force_rotate_bastao(colaborador_direcionado)
+                        else:
+                            # Se não tinha bastão, só salvar
+                            save_state()
                         
-                        save_state()
                         st.success(f"✅ Demanda direcionada para {colaborador_direcionado}!")
                     else:
                         st.success("✅ Demanda publicada!")
@@ -2294,11 +2330,13 @@ with col_principal:
                                 # Desmarcar checkbox
                                 st.session_state[f'check_{colaborador_direcionado}'] = False
                                 
-                                # Se tinha bastão, passar para próximo
+                                # Se tinha bastão, passar para próximo (SEM validação)
                                 if tinha_bastao:
-                                    rotate_bastao()
+                                    force_rotate_bastao(colaborador_direcionado)
+                                else:
+                                    # Se não tinha bastão, só salvar
+                                    save_state()
                                 
-                                save_state()
                                 st.success(f"✅ Demanda direcionada para {colaborador_direcionado}!")
                             else:
                                 st.success("✅ Demanda publicada!")
@@ -2413,19 +2451,26 @@ with col_disponibilidade:
         'indisponivel': []
     }
     
-    # CRÍTICO: Filtrar admins de todas as listas
+    # CRÍTICO: Filtrar admins (EXCETO: Em Demanda, Almoço, Saída rápida)
     from auth_system import is_usuario_admin
     
     for nome in COLABORADORES:
-        # PULAR admins - NÃO APARECEM EM NENHUMA LISTA
-        if is_usuario_admin(nome):
-            continue  # Pula para próximo colaborador
+        eh_admin = is_usuario_admin(nome)
+        status = st.session_state.status_texto.get(nome, 'Indisponível')
         
-        # A partir daqui, só processa NÃO-ADMINS
+        # Admin SÓ aparece se estiver em: Atividade, Almoço ou Saída rápida
+        if eh_admin:
+            pode_mostrar = (
+                'Atividade:' in status or 
+                status == 'Almoço' or 
+                status == 'Saída rápida'
+            )
+            if not pode_mostrar:
+                continue  # Pula admin em outros status
+        
+        # A partir daqui: NÃO-ADMINS ou ADMINS nos status permitidos
         if nome in st.session_state.bastao_queue:
             ui_lists['fila'].append(nome)
-        
-        status = st.session_state.status_texto.get(nome, 'Indisponível')
         
         if status == '' or status is None:
             pass
