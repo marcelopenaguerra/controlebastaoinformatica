@@ -533,7 +533,6 @@ def finalizar_demanda(colaborador):
     st.rerun()
 
     def check_almoco_timeout():
-    """Verifica se alguém está há mais de 1h no almoço e retorna automaticamente"""
     now = now_brasilia()
     almoco_times = st.session_state.get('almoco_times', {})
     
