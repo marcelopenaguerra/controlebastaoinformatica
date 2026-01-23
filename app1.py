@@ -74,7 +74,7 @@ ADMIN_COLABORADORES = [
     "Daniely Cristina Cunha Mesquita",
     "Marcio Rodrigues Alves",
     "Leonardo goncalves fleury",
-    "Rôner Ribeiro Júnior"
+    "Roner Ribeiro Júnior"
 ]
 
 # --- Inicializar banco PRIMEIRO ---
