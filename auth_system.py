@@ -127,12 +127,29 @@ def adicionar_usuario(nome, senha, is_admin=False):
         return False  # Usuário já existe
 
 def remover_usuario(nome):
-    """Desativa usuário (soft delete)"""
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("UPDATE usuarios SET ativo = 0 WHERE nome = ?", (nome,))
-    conn.commit()
-    conn.close()
+    """Remove usuário permanentemente do banco (DELETE real)"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("DELETE FROM usuarios WHERE nome = ?", (nome,))
+        conn.commit()
+        linhas_afetadas = c.rowcount
+        conn.close()
+        return linhas_afetadas > 0
+    except Exception as e:
+        return False
+
+def desativar_usuario(nome):
+    """Desativa usuário sem remover do banco (soft delete)"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("UPDATE usuarios SET ativo = 0 WHERE nome = ?", (nome,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        return False
 
 def alterar_senha(nome, senha_nova):
     """Altera senha do usuário e marca que não é mais primeiro acesso"""
