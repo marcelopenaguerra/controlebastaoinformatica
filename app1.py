@@ -73,7 +73,8 @@ ADMIN_FILE = Path("admin_data.json")
 ADMIN_COLABORADORES = [
     "Daniely Cristina Cunha Mesquita",
     "Marcio Rodrigues Alves",
-    "Leonardo goncalves fleury"
+    "Leonardo goncalves fleury",
+    "Rôner Ribeiro Júnior"
 ]
 
 # --- Inicializar banco PRIMEIRO ---
