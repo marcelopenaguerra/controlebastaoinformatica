@@ -133,6 +133,8 @@ REG_SISTEMA_OPCOES = ["Conveniados", "Outros", "Eproc", "Themis", "JPE", "SIAP"]
 REG_CANAL_OPCOES = ["Presencial", "Telefone", "Email", "Whatsapp", "Outros"]
 REG_DESFECHO_OPCOES = ["Resolvido - Informática", "Escalonado"]
 
+
+# Emoji do Bastão (removido - sem emoji)
 BASTAO_EMOJI = ""
 
 # ============================================
@@ -1701,64 +1703,134 @@ with col_principal:
         ]
         
         if demandas_ativas:
+            # Header com contador
             st.markdown(f"""
             <div class="demand-alert">
                 <strong>{len(demandas_ativas)} DEMANDA(S) DISPONÍVEL(EIS) PARA ADESÃO</strong>
             </div>
             """, unsafe_allow_html=True)
             
-            # Mostrar até 3 demandas
-            for dem in demandas_ativas[:3]:
-                # Setor antes do título
+            # CSS para cards compactos
+            st.markdown("""
+            <style>
+            .demanda-card {
+                background: white;
+                border-left: 4px solid;
+                padding: 0.75rem;
+                margin-bottom: 0.5rem;
+                border-radius: 6px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .demanda-card:hover {
+                box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+                transform: translateX(2px);
+            }
+            .demanda-urgente { border-left-color: #dc2626; }
+            .demanda-alta { border-left-color: #ea580c; }
+            .demanda-media { border-left-color: #f59e0b; }
+            .demanda-baixa { border-left-color: #10b981; }
+            
+            .demanda-header {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 0.25rem;
+            }
+            .demanda-badge {
+                display: inline-block;
+                padding: 0.15rem 0.5rem;
+                border-radius: 4px;
+                font-size: 0.7rem;
+                font-weight: 600;
+                color: white;
+            }
+            .badge-urgente { background: #dc2626; }
+            .badge-alta { background: #ea580c; }
+            .badge-media { background: #f59e0b; }
+            .badge-baixa { background: #10b981; }
+            
+            .demanda-setor {
+                color: #64748b;
+                font-size: 0.75rem;
+                font-weight: 500;
+            }
+            .demanda-texto {
+                color: #1e293b;
+                font-size: 0.85rem;
+                line-height: 1.4;
+                margin: 0.25rem 0;
+            }
+            .demanda-direcionada {
+                background: #dbeafe;
+                color: #1e40af;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-size: 0.7rem;
+                margin-top: 0.25rem;
+                display: inline-block;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            # Mostrar TODAS as demandas em formato compacto
+            for dem in demandas_ativas:
                 setor = dem.get('setor', 'Geral')
                 prioridade = dem.get('prioridade', 'Média')
-                
-                # LIMPEZA GLOBAL
                 texto_limpo = limpar_texto_demanda(dem['texto'])
                 
-                titulo = f"[{setor}] [{prioridade}] {texto_limpo[:50]}..."
+                # Classe CSS por prioridade
+                prioridade_lower = prioridade.lower()
+                card_class = f"demanda-{prioridade_lower}"
+                badge_class = f"badge-{prioridade_lower}"
                 
-                with st.expander(titulo):
-                    st.write(f"**Setor:** {setor}")
-                    st.write(f"**Prioridade:** {prioridade}")
-                    st.write(f"**Descrição:** {texto_limpo}")
-                    st.caption(f"Criada por: {dem.get('criado_por', 'Admin')}")
+                # Card compacto
+                card_html = f"""
+                <div class="demanda-card {card_class}">
+                    <div class="demanda-header">
+                        <span class="demanda-badge {badge_class}">{prioridade.upper()}</span>
+                        <span class="demanda-setor">{setor}</span>
+                    </div>
+                    <div class="demanda-texto">{texto_limpo[:80]}{'...' if len(texto_limpo) > 80 else ''}</div>
+                    {'<div class="demanda-direcionada">📌 Direcionada para você</div>' if dem.get('direcionada_para') else ''}
+                </div>
+                """
+                st.markdown(card_html, unsafe_allow_html=True)
+                
+                # Botão de aderir (compacto)
+                col_btn = st.columns([1])[0]
+                if col_btn.button(f"✅ Assumir", key=f"aderir_dem_{dem['id']}", use_container_width=True):
+                    # CRÍTICO: Pegar colaborador logado, NÃO o responsável atual
+                    colaborador_logado = st.session_state.usuario_logado
                     
-                    # Verificar se é direcionada
-                    if dem.get('direcionada_para'):
-                        st.info(f"📌 Esta demanda foi direcionada especificamente para você!")
+                    # Entrar na demanda automaticamente
+                    atividade_desc = f"[{setor}] {texto_limpo[:100]}"
                     
-                    if st.button(f"Aderir a esta demanda", key=f"aderir_dem_{dem['id']}", use_container_width=True):
-                        # CRÍTICO: Pegar colaborador logado, NÃO o responsável atual
-                        colaborador_logado = st.session_state.usuario_logado
-                        
-                        # Entrar na demanda automaticamente
-                        atividade_desc = f"[{setor}] {texto_limpo[:100]}"
-                        
-                        # Registrar início
-                        st.session_state.demanda_start_times[colaborador_logado] = now_brasilia()
-                        
-                        # Atualizar status
-                        st.session_state.status_texto[colaborador_logado] = f"Atividade: {atividade_desc}"
-                        
-                        # Sair da fila
-                        if colaborador_logado in st.session_state.bastao_queue:
-                            st.session_state.bastao_queue.remove(colaborador_logado)
-                        st.session_state[f'check_{colaborador_logado}'] = False
-                        
-                        # Passar bastão
-                        check_and_assume_baton()
-                        
-                        # CRÍTICO: Marcar demanda como inativa (já foi assumida)
-                        dem['ativa'] = False
-                        dem['assumida_por'] = colaborador_logado
-                        dem['assumida_em'] = now_brasilia().isoformat()
-                        save_admin_data()
-                        
-                        save_state()
-                        st.success(f"{responsavel} aderiu à demanda!")
-                        time.sleep(1)
-                        st.rerun()
+                    # Registrar início
+                    st.session_state.demanda_start_times[colaborador_logado] = now_brasilia()
+                    
+                    # Atualizar status
+                    st.session_state.status_texto[colaborador_logado] = f"Atividade: {atividade_desc}"
+                    
+                    # Sair da fila
+                    if colaborador_logado in st.session_state.bastao_queue:
+                        st.session_state.bastao_queue.remove(colaborador_logado)
+                    st.session_state[f'check_{colaborador_logado}'] = False
+                    
+                    # Passar bastão
+                    check_and_assume_baton()
+                    
+                    # CRÍTICO: Marcar demanda como inativa (já foi assumida)
+                    dem['ativa'] = False
+                    dem['assumida_por'] = colaborador_logado
+                    dem['assumida_em'] = now_brasilia().isoformat()
+                    save_admin_data()
+                    
+                    save_state()
+                    st.success(f"{colaborador_logado} assumiu a demanda!")
+                    time.sleep(1)
+                    st.rerun()
     else:
         st.markdown("""
         <style>
@@ -1935,7 +2007,7 @@ with col_principal:
             
             with col_p2:
                 setor = st.selectbox("Setor:",
-                                    options=["Desembargador(a)","Presidência","Plenários", "Geral"],
+                                    options=["Geral", "Cartório", "Gabinete", "Setores Administrativos"],
                                     key="toolbar_setor")
             
             # Direcionar para colaborador específico
