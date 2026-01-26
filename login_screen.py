@@ -1,5 +1,54 @@
 import streamlit as st
 from auth_system import verificar_login, listar_usuarios_ativos, alterar_senha
+import hashlib
+import secrets
+import time
+
+# ==================== SISTEMA DE TOKENS SEGUROS ====================
+# Gera tokens únicos por sessão que expiram
+SESSION_TOKENS = {}  # {token: {'usuario': nome, 'expira': timestamp}}
+TOKEN_DURACAO = 3600  # 1 hora
+
+def gerar_token_seguro(usuario_nome):
+    """Gera token único e seguro para o usuário"""
+    # Token = hash(usuario + timestamp + secret)
+    secret = secrets.token_hex(32)
+    timestamp = str(time.time())
+    token_raw = f"{usuario_nome}{timestamp}{secret}"
+    token = hashlib.sha256(token_raw.encode()).hexdigest()[:32]
+    
+    # Guardar token com expiração
+    SESSION_TOKENS[token] = {
+        'usuario': usuario_nome,
+        'expira': time.time() + TOKEN_DURACAO,
+        'criado': time.time()
+    }
+    
+    return token
+
+def validar_token(token):
+    """Valida token e retorna usuário se válido"""
+    if token not in SESSION_TOKENS:
+        return None
+    
+    token_data = SESSION_TOKENS[token]
+    
+    # Verificar expiração
+    if time.time() > token_data['expira']:
+        del SESSION_TOKENS[token]
+        return None
+    
+    return token_data['usuario']
+
+def limpar_tokens_expirados():
+    """Remove tokens expirados"""
+    tokens_para_remover = []
+    for token, data in SESSION_TOKENS.items():
+        if time.time() > data['expira']:
+            tokens_para_remover.append(token)
+    
+    for token in tokens_para_remover:
+        del SESSION_TOKENS[token]
 
 def mostrar_tela_troca_senha():
     """Tela obrigatória de troca de senha no primeiro acesso"""
@@ -122,8 +171,10 @@ def mostrar_tela_login():
                     st.session_state.user_id = usuario['id']
                     st.session_state.precisa_trocar_senha = usuario['primeiro_acesso']
                     
-                    # CRÍTICO: Adicionar token na URL para persistir sessão
-                    st.query_params['user'] = usuario['nome']
+                    # CRÍTICO: Gerar token seguro único
+                    token = gerar_token_seguro(usuario['nome'])
+                    st.session_state.auth_token = token
+                    st.query_params['token'] = token
                     
                     st.success(f"✅ Bem-vindo(a), {usuario['nome']}!")
                     st.rerun()
@@ -135,23 +186,44 @@ def mostrar_tela_login():
         st.caption("🔒 Sistema seguro com autenticação de usuários")
 
 def verificar_autenticacao():
-    """Verifica se usuário está autenticado - COM PERSISTÊNCIA"""
-    # Tentar restaurar sessão de query params
+    """Verifica se usuário está autenticado - COM TOKEN SEGURO"""
+    # Limpar tokens expirados
+    limpar_tokens_expirados()
+    
+    # Se já está logado nesta sessão, verificar se token ainda é válido
+    if st.session_state.get('logged_in', False):
+        token = st.session_state.get('auth_token')
+        if token:
+            usuario_validado = validar_token(token)
+            if not usuario_validado or usuario_validado != st.session_state.usuario_logado:
+                # Token inválido ou expirado - forçar logout
+                st.session_state.logged_in = False
+                st.session_state.usuario_logado = None
+                st.warning("⚠️ Sessão expirada. Faça login novamente.")
+                mostrar_tela_login()
+                st.stop()
+    
+    # Tentar restaurar sessão da URL (APENAS SE TOKEN VÁLIDO)
     if not st.session_state.get('logged_in', False):
-        # Verificar se há token na URL
-        if 'user' in st.query_params:
-            usuario_nome = st.query_params['user']
-            # Restaurar sessão
-            from auth_system import verificar_login, listar_usuarios_ativos
-            usuarios = listar_usuarios_ativos()
-            if usuario_nome in usuarios:
-                # Recriar sessão sem senha (já estava logado)
+        if 'token' in st.query_params:
+            token = st.query_params['token']
+            usuario_nome = validar_token(token)
+            
+            if usuario_nome:
+                # Token válido - restaurar sessão
+                from auth_system import is_usuario_admin
                 st.session_state.logged_in = True
                 st.session_state.usuario_logado = usuario_nome
-                # Buscar info do usuário no banco
-                from auth_system import is_usuario_admin
                 st.session_state.is_admin = is_usuario_admin(usuario_nome)
+                st.session_state.auth_token = token
                 st.session_state.precisa_trocar_senha = False
+            else:
+                # Token inválido - limpar e mostrar login
+                if 'token' in st.query_params:
+                    del st.query_params['token']
+                st.warning("⚠️ Sessão inválida ou expirada.")
+                mostrar_tela_login()
+                st.stop()
     
     if not st.session_state.get('logged_in', False):
         mostrar_tela_login()
@@ -163,16 +235,22 @@ def verificar_autenticacao():
         st.stop()
 
 def fazer_logout():
-    """Faz logout do usuário - SIMPLES!"""
+    """Faz logout do usuário - LIMPA TOKEN"""
+    # Invalidar token
+    token = st.session_state.get('auth_token')
+    if token and token in SESSION_TOKENS:
+        del SESSION_TOKENS[token]
+    
     # Limpar query params
-    if 'user' in st.query_params:
-        del st.query_params['user']
+    if 'token' in st.query_params:
+        del st.query_params['token']
     
     # Limpar apenas dados de login
     st.session_state.logged_in = False
     st.session_state.usuario_logado = None
     st.session_state.is_admin = False
     st.session_state.user_id = None
+    st.session_state.auth_token = None
     st.session_state.precisa_trocar_senha = False
     
     # Resetar flag de entrada na fila
